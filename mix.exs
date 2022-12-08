@@ -1,9 +1,9 @@
-defmodule D07.MixProject do
+defmodule Aoc2022.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :d07,
+      app: :aoc2022,
       version: "0.1.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
@@ -11,17 +11,15 @@ defmodule D07.MixProject do
     ]
   end
 
+  # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      applications: applications(Mix.env),
       extra_applications: [:logger],
-      mod: {D07.Application, []}
+      mod: {Aoc2022.Application, []}
     ]
   end
 
-  defp applications(:dev), do: applications(:all) ++ [:remix]
-  defp applications(_all), do: [:logger]
-
+  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:libgraph, "~> 0.7"},

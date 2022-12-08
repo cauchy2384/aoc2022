@@ -46,7 +46,7 @@ defmodule D07 do
     |> Stream.each(&IO.inspect/1)
     |> Stream.map(fn g ->
       total = Graph.Reducers.Bfs.reduce(g, 0, fn v, acc ->
-        {g, w} = size(g, v, Graph.vertex_labels(g, v))
+        {_, w} = size(g, v, Graph.vertex_labels(g, v))
 
         if w > acc do
           {:next, w}
@@ -94,7 +94,7 @@ defmodule D07 do
     end
   end
 
-  def change_dir(g, v, name, path, d) do
+  def change_dir(g, _, name, path, d) do
     name = String.to_atom(name)
     path = path ++ [ name ]
     v = path
