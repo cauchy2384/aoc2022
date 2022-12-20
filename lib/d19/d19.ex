@@ -21,6 +21,7 @@ defmodule D19 do
 
   # D19.solve2("input/d19/example.txt", 32)
   # 1, 41
+  # 2, 11
   # 3, 28
   def solve2(fname, minutes \\ 32) do
 
@@ -29,9 +30,9 @@ defmodule D19 do
     |> Enum.map(&(String.replace(&1, "\n", "")))
     |> Enum.map(&(String.split(&1, " ")))
     |> Enum.map(&Blueprint.new/1)
+    # |> Enum.drop(2)
+    |> Enum.take(3)
     |> Enum.map(&IO.inspect/1)
-    # |> Stream.drop(1)
-    |> Enum.take(1)
     |> Enum.map(&(Factory.new(&1, minutes)))
     |> Enum.map(fn f ->
       Memoize.invalidate()
@@ -225,9 +226,10 @@ defmodule Factory do
     if length(vars) == 0 do
       [factory]
     else
-      [factory] ++ Enum.map(vars, fn rs ->
+      factories = Enum.map(vars, fn rs ->
         craft(factory, rs)
       end)
+      factories ++ [factory]
     end
   end
 
@@ -287,7 +289,7 @@ defmodule Factory do
 
   def craft(factory, robot) do
     if !can_craft(factory, robot) do
-      factory
+      raise "fuck you"
     else
       rs = [:geode, :obsidian, :clay, :ore]
 
