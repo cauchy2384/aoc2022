@@ -1,8 +1,8 @@
 defmodule D24 do
 
   # D24.solve("input/d24/example.txt", 20)
+  # D24.solve("input/d24/input.txt", 500)
   def solve(fname, max_steps \\ 3) do
-    Memoize.invalidate()
 
     start = start_position(fname)
     finish = finish_position(fname)
@@ -12,69 +12,95 @@ defmodule D24 do
     IO.inspect({start, finish, size})
     # IO.inspect(bzs)
 
+    {blz_vars, _s, _bzs} = Stream.iterate(0, &(&1+1))
+    |> Enum.reduce_while(
+        {Map.new(), MapSet.new(), bzs},
+        fn step, {m, s, bzs} ->
+          if MapSet.member?(s, bzs) do
+            {:halt, {m, s, bzs}}
+          else
+            m = Map.put(m, step, bzs)
+            s = MapSet.put(s, bzs)
+            bzs = move_blizzards(bzs, size)
+            {:cont, {m, s, bzs}}
+          end
+        end
+    )
+    IO.puts("precached blizzards number: #{map_size(blz_vars)}")
 
-    cache = Map.new()
-    {res, _cache} = run(cache, start, start, finish, size, bzs, 0, max_steps, max_steps)
+    cache = MapSet.new()
+    res = run(cache, start, start, finish, size, blz_vars, 0, max_steps)
+    res2 = run(cache, finish, finish, start, size, blz_vars, res, max_steps)
+    res3 = run(cache, start, start, finish, size, blz_vars, res2, max_steps)
 
-    res
+    IO.inspect([res, res2, res3])
   end
 
-  def run(cache, pos, start, finish, size, bzs, steps, max_steps, limit) do
-    key = {pos, bzs}
+  def run(cache, pos, start, finish, size, blz_vars, step, max_steps) do
 
-    if Map.has_key?(cache, key) do
-      {cached_steps, cached_res} = Map.get(cache, key)
-      cond do
-      steps > cached_steps ->
-        {cached_res, cache}
-      (steps < cached_steps) and (max_steps != limit)
-        res = cached_res - (cached_steps - steps)
-        cache = Map.put(cache, key, {steps, res})
-        {res, cache}
-      true ->
-        {res, cache} = _run(cache, pos, start, finish, size, bzs, steps, max_steps, limit)
-        cache = Map.put(cache, key, {steps, res})
-        {res, cache}
+    Stream.iterate(step, &(&1+1))
+    |> Enum.reduce_while(
+      {cache, [{pos, step}], step},
+      fn _idx, {cache, queue, prev_step} ->
+        if length(queue) == 0 do
+          {:halt, -1}
+        else
+          {pos, steps} = hd(queue)
+          queue = tl(queue)
+
+          log(prev_step, steps, queue, cache)
+          # IO.inspect(cache)
+
+          key = {pos, steps}
+
+          {res, cache} = _run(cache, pos, start, finish, size, blz_vars, steps, max_steps)
+
+          cache = MapSet.put(cache, key)
+
+          cond do
+            is_list(res) ->
+              res = Enum.map(res, fn r -> {r, steps + 1} end)
+              queue = queue ++ res
+              {:cont, {cache, queue, steps}}
+            is_integer(res) ->
+              {:halt, res}
+          end
+        end
       end
-    else
-      {res, cache} = _run(cache, pos, start, finish, size, bzs, steps, max_steps, limit)
-      cache = Map.put(cache, key, {steps, res})
-      {res, cache}
+    )
+  end
+
+  def log(step, steps, queue, cache) do
+    if step != steps do
+      IO.puts("Step: #{step}, queue: #{length(queue)}, cache: #{MapSet.size(cache)}")
     end
   end
 
-  def _run(cache, pos, start, finish, size, bzs, steps, max_steps, limit) do
+  def _run(cache, pos, start, finish, size, blz_vars, steps, max_steps) do
     # IO.puts("Minute #{steps}, max minutes #{max_steps}")
     # print(pos, finish, bzs, size)
+    key = {pos, steps}
+    bzs = Map.get(blz_vars, rem(steps, map_size(blz_vars)))
 
     cond do
     pos == finish ->
       IO.puts(steps)
-      # print(pos, finish, bzs, size)
+      print(pos, finish, bzs, size)
+      # cache = MapSet.put(cache, key)
       {steps, cache}
+    MapSet.member?(cache, key) ->
+      {[], cache}
     has_collided(pos, bzs) ->
-      {max_steps, cache}
+      {[], cache}
     distance_to_finish(pos, finish) + steps >= max_steps ->
-      {max_steps, cache}
+      {[], cache}
     steps + 1 == max_steps ->
-      {max_steps, cache}
+      {[], cache}
     true ->
-      next_bzs = move_blizzards(bzs, size)
-
-      moves = elf_moves(pos, start, finish, next_bzs, size)
-      # IO.inspect(["moves", moves])
-
-      if length(moves) == 0 do
-        {max_steps, cache}
-      else
-        moves
-        |> Enum.reduce({max_steps, cache}, fn next_pos, {max_steps, cache} ->
-          {res, cache} = run(cache, next_pos, start, finish, size, next_bzs, steps + 1, max_steps, limit)
-          res = Enum.min([res, max_steps])
-          {res, cache}
-        end)
-      end
-
+      bzs = Map.get(blz_vars, rem(steps + 1, map_size(blz_vars)))
+      moves = elf_moves(pos, start, finish, bzs, size)
+      |> Enum.filter(fn x -> !MapSet.member?(cache, {x, steps + 1}) end)
+      {moves, cache}
     end
   end
 

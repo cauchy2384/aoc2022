@@ -24,7 +24,7 @@ defmodule Aoc2022.MixProject do
     [
       {:libgraph, "~> 0.7"},
       {:remix, "~> 0.0.1", only: :dev},
-      { :matrix, "~> 0.3.0" },
+      {:matrix, "~> 0.3.0" },
       {:memoize, "~> 1.4"},
       {:comb, git: "https://github.com/tallakt/comb.git", tag: "master"},
       # {:dep_from_hexpm, "~> 0.3.0"},
